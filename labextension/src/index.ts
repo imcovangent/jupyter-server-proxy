@@ -123,7 +123,7 @@ async function activate(
         newBrowserTab: newBrowserTab,
         id: id,
       },
-      category: "Notebook",
+      category: server_process.launcher_entry.category,
     };
 
     if (server_process.launcher_entry.icon_url) {
