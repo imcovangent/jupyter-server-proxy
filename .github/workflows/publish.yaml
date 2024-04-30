@@ -32,13 +32,13 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           cache: yarn
           node-version: 20.x
@@ -68,16 +68,16 @@ jobs:
           sha256sum * | tee SHA256SUMS
 
       - name: Upload Python artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: dist-${{ github.run_attempt }}
           path: dist
           if-no-files-found: error
 
       - name: Upload Javascript artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: jsdist
+          name: jsdist-${{ github.run_attempt }}
           path: jsdist
           if-no-files-found: error
 
@@ -88,14 +88,14 @@ jobs:
       - build
 
     steps:
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Download artifacts from build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: dist-${{ github.run_attempt }}
           path: dist
 
       # The PyPI publishing action will try to publish this checksum file as if
@@ -119,15 +119,15 @@ jobs:
 
     steps:
       # actions/setup-node creates an .npmrc file that references NODE_AUTH_TOKEN
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
       - name: Download artifacts from build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: jsdist
+          name: jsdist-${{ github.run_attempt }}
           path: jsdist
 
       - run: |

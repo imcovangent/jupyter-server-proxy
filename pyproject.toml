@@ -4,9 +4,8 @@
 [build-system]
 build-backend = "hatchling.build"
 requires = [
-    "hatch-jupyter-builder >=0.5",
-    "hatch-nodejs-version",
-    "hatchling >=1.4.0",
+    "hatch-jupyter-builder >=0.8.3",
+    "hatchling >=1.18.0",
     "jupyterlab >=4.0.6,<5.0.0a0",
 ]
 
@@ -17,12 +16,13 @@ requires = [
 #
 [project]
 name = "jupyter_server_proxy"
-dynamic = [
-    "authors",
-    "description",
-    "keywords",
-    "urls",
-    "version",
+version = "4.1.3-0.dev"
+description = "A Jupyter server extension to run additional processes and proxy to them that comes bundled JupyterLab extension to launch pre-defined processes."
+keywords = ["jupyter", "jupyterlab", "jupyterlab-extension"]
+authors = [
+  { name = "Ryan Lovett", email = "rylo@berkeley.edu" },
+  { name = "Yuvi Panda", email = "yuvipanda@gmail.com" },
+  { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -50,11 +50,14 @@ dependencies = [
     "importlib_metadata >=4.8.3 ; python_version<\"3.10\"",
     "jupyter-server >=1.0",
     "simpervisor >=1.0",
+    "tornado >=5.1",
+    "traitlets >= 4.2.1",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest",
+    "pytest-asyncio",
     "pytest-cov",
     "pytest-html",
 ]
@@ -75,10 +78,14 @@ lab = [
     "notebook >=7",
 ]
 
-[tool.hatch.version]
-source = "nodejs"
-path = "labextension/package.json"
+[project.urls]
+Documentation = "https://jupyter-server-proxy.readthedocs.io"
+Source = "https://github.com/jupyterhub/jupyter-server-proxy"
+Tracker = "https://github.com/jupyterhub/jupyter-server-proxy/issues"
 
+
+# hatch ref: https://hatch.pypa.io/latest/
+#
 [tool.hatch.build.targets.sdist]
 artifacts = [
     "jupyter_server_proxy/labextension",
@@ -100,10 +107,6 @@ exclude = [
 [tool.hatch.metadata]
 # Set to true to allow testing of git+https://github.com/user/repo@sha dependencies
 allow-direct-references = false
-
-[tool.hatch.metadata.hooks.nodejs]
-path = "labextension/package.json"
-fields = ["description", "authors", "urls"]
 
 [tool.hatch.build.hooks.jupyter-builder]
 build-function = "hatch_jupyter_builder.npm_builder"
@@ -171,7 +174,7 @@ profile = "black"
 github_url = "https://github.com/jupyterhub/jupyter-server-proxy"
 
 [tool.tbump.version]
-current = "4.1.0"
+current = "4.1.3-0.dev"
 regex = '''
     (?P<major>\d+)
     \.
@@ -180,7 +183,7 @@ regex = '''
     (?P<patch>\d+)
     -?
     (?P<pre>((alpha|beta|rc)\.\d+)|)
-    (?P<dev>(dev\.\d+)|)
+    (?P<dev>(0\.dev)|)
 '''
 
 [tool.tbump.git]
@@ -188,13 +191,21 @@ message_template = "Bump to {new_version}"
 tag_template = "v{new_version}"
 
 [[tool.tbump.file]]
+src = "pyproject.toml"
+
+[[tool.tbump.file]]
 src = "labextension/package.json"
 
+
+# pytest is used for running Python based tests
+#
+# ref: https://docs.pytest.org/en/stable/
+#
 [tool.pytest.ini_options]
-cache_dir = "build/.cache/pytest"
-testpaths = ["tests"]
 addopts = [
-    "-vv",
+    "--verbose",
+    "--durations=10",
+    "--color=yes",
     "--cov=jupyter_server_proxy",
     "--cov-branch",
     "--cov-context=test",
@@ -202,9 +213,16 @@ addopts = [
     "--cov-report=html:build/coverage",
     "--no-cov-on-fail",
     "--html=build/pytest/index.html",
-    "--color=yes",
 ]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+cache_dir = "build/.cache/pytest"
 
+
+# pytest-cov / coverage is used to measure code coverage of tests
+#
+# ref: https://coverage.readthedocs.io/en/stable/config.html
+#
 [tool.coverage.run]
 data_file = "build/.coverage"
 concurrency = [

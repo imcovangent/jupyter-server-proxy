@@ -21,6 +21,9 @@ on:
     branches-ignore:
       - "dependabot/**"
       - "pre-commit-ci-update-config"
+  schedule:
+    # Run at 05:00 on monday and thursday, ref: https://crontab.guru/#0_5_*_*_1,4
+    - cron: "0 5 * * 1,4"
   workflow_dispatch:
 
 env:
@@ -35,11 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           cache: yarn
           node-version: 20.x
@@ -53,9 +56,9 @@ jobs:
         run: pyproject-build
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ github.run_number }}
+          name: dist-${{ github.run_attempt }}
           path: ./dist
 
   test:
@@ -73,6 +76,7 @@ jobs:
         os: [ubuntu-22.04, windows-2022]
         python-version: ["3.8", "3.11"]
         pip-extras: ["lab", "classic"]
+        pip-install-constraints: [""]
         exclude:
           # windows should work for all test variations, but a limited selection
           # is run to avoid doubling the amount of test runs
@@ -83,10 +87,21 @@ jobs:
             python-version: "3.8"
             pip-extras: lab
 
+          # this test is manually updated to reflect the lower bounds of
+          # versions from dependencies
+          - os: ubuntu-22.04
+            python-version: "3.8"
+            pip-extras: classic
+            pip-install-constraints: >-
+              jupyter-server==1.0
+              simpervisor==1.0
+              tornado==5.1
+              traitlets==4.2.1
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "${{ matrix.python-version }}"
 
@@ -94,9 +109,9 @@ jobs:
         run: pip install --upgrade pip
 
       - name: Download built artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dist-${{ github.run_number }}
+          name: dist-${{ github.run_attempt }}
           path: ./dist
 
       - name: Install Python package
@@ -105,7 +120,7 @@ jobs:
         #
         #       Pytest options are set in `pyproject.toml`.
         run: |
-          pip install -vv $(ls ./dist/*.whl)\[acceptance,${{ matrix.pip-extras }}\]
+          pip install -vv $(ls ./dist/*.whl)\[acceptance,${{ matrix.pip-extras }}\] ${{ matrix.pip-install-constraints }}
 
       - name: List Python packages
         run: |
@@ -152,16 +167,14 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: |-
-            tests-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pip-extras }}-${{ github.run_number }}
+            tests-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pip-extras }}-${{ github.run_attempt }}
           path: |
             ./build/pytest
             ./build/coverage
             ./build/robot
 
       # GitHub action reference: https://github.com/codecov/codecov-action
-      - uses: codecov/codecov-action@v3
-        with:
-          directory: build/.coverage
+      - uses: codecov/codecov-action@v4
